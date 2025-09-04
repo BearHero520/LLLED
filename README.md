@@ -1,14 +1,22 @@
 # 绿联 4800plus LED 灯光控制工具
 
-基于绿联 DX4600 Pro 系列 LED 控制协议的 Shell 脚本工具，适用于绿联 4800plus 等兼容设备。
+基于绿联 DX4600 Pro 系列 LED### 2. 加载 I2C 模块
+
+```bash
+sudo modprobe i2c-dev
+```
+
+### 3. 基本使用 Shell 脚本工具，适用于绿联 4800plus 等兼容设备。
 
 ## 功能特性
 
--   🔆 **灯光效果选择**: 支持多种灯光模式
+-   🔆 **智能硬盘监控**: 活动硬盘正常亮，休眠硬盘微亮，故障硬盘闪烁
 -   💾 **硬盘位置显示**: 根据硬盘位置和状态显示对应灯光
--   🔌 **关闭灯光**: 一键关闭所有 LED 灯
--   🎨 **自定义颜色**: 支持 RGB 颜色自定义
--   ⚡ **实时监控**: 监控硬盘状态、网络连接、系统状态
+-   🌙 **人性化模式**: 夜间模式、节能模式、定位模式
+-   🎨 **自定义效果**: 15 种预设模式，支持 RGB 颜色自定义
+-   ⚡ **实时监控**: 监控硬盘状态、网络连接、系统温度
+-   🗑️ **完全卸载**: 一键卸载，支持保留配置选项
+-   🔌 **一键操作**: 关闭所有 LED、彩虹效果等快捷功能
 
 ## 系统要求
 
@@ -17,7 +25,61 @@
 -   Root 权限
 -   绿联 4800plus 或兼容设备
 
-## 安装使用
+## 快速开始
+
+### 🚀 一键安装使用
+
+```bash
+# 方法1: 使用wget
+wget -O- https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh | sudo bash
+
+# 方法2: 使用curl
+curl -sSL https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh | sudo bash
+
+# 安装完成后，直接使用
+LLLED
+```
+
+### ⚡ 快速命令
+
+```bash
+LLLED                      # 启动交互式控制面板
+LLLED --disk-status        # 显示硬盘状态LED
+LLLED --smart-activity     # 智能硬盘活动监控 ⭐
+LLLED --turn-off           # 关闭所有LED
+LLLED --rainbow            # 彩虹跑马灯效果
+LLLED --night-mode         # 夜间模式 (低亮度白光)
+LLLED --eco-mode           # 节能模式 (仅电源灯)
+LLLED --custom-modes       # 自定义模式菜单
+LLLED --help              # 显示帮助信息
+```
+
+### 🎯 智能功能特性
+
+-   **智能活动监控** - 活动硬盘正常亮度，空闲硬盘微亮，休眠硬盘超微亮
+-   **自定义模式** - 15 种预设效果，支持用户定制
+-   **人性化操作** - 夜间模式、节能模式、定位模式等
+-   **一键卸载** - 完全清理，支持保留配置选项
+
+## 详细安装说明
+
+### 一键安装（推荐）
+
+```bash
+# 下载并运行一键安装脚本
+wget -O- https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh | sudo bash
+
+# 或者使用curl
+curl -sSL https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh | sudo bash
+```
+
+安装完成后，直接使用：
+
+```bash
+LLLED
+```
+
+### 手动安装
 
 ### 1. 下载工具
 
@@ -26,9 +88,9 @@
 wget https://github.com/miskcoo/ugreen_leds_controller/releases/download/v0.1-debian12/ugreen_leds_cli
 chmod +x ugreen_leds_cli
 
-# 或克隆本项目
-git clone https://github.com/your-repo/ugreen-4800plus-led-controller.git
-cd ugreen-4800plus-led-controller
+# 克隆本项目
+git clone https://github.com/BearHero520/LLLED.git
+cd LLLED
 ```
 
 ### 2. 加载 I2C 模块
@@ -97,6 +159,27 @@ sudo cp systemd/ugreen-led-monitor.service /etc/systemd/system/
 sudo systemctl enable ugreen-led-monitor.service
 sudo systemctl start ugreen-led-monitor.service
 ```
+
+## 卸载
+
+### 🗑️ 完全卸载
+
+```bash
+# 方法1: 使用安装目录的卸载脚本
+sudo /opt/ugreen-led-controller/uninstall.sh
+
+# 方法2: 直接下载卸载脚本
+wget -O- https://raw.githubusercontent.com/BearHero520/LLLED/main/uninstall.sh | sudo bash
+
+# 方法3: 强制卸载 (不询问确认)
+sudo /opt/ugreen-led-controller/uninstall.sh --force
+```
+
+### 卸载选项
+
+-   **完全卸载** - 删除所有文件和配置
+-   **保留配置卸载** - 删除程序文件，保留配置文件
+-   **仅停用服务** - 停用服务，保留所有文件
 
 ## 故障排除
 
