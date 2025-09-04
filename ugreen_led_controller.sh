@@ -2,6 +2,9 @@
 
 # 绿联LED控制工具 - 智能硬盘映射版
 # 项目地址: https://github.com/BearHero520/LLLED
+# 版本: 1.2.0 (修复版)
+
+VERSION="1.2.0"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -150,7 +153,7 @@ show_disk_mapping() {
 # 显示菜单
 show_menu() {
     clear
-    echo -e "${CYAN}绿联LED控制工具 (智能硬盘映射)${NC}"
+    echo -e "${CYAN}绿联LED控制工具 v$VERSION (智能硬盘映射)${NC}"
     echo "=================================="
     echo "1) 关闭所有LED"
     echo "2) 打开所有LED"
@@ -197,12 +200,19 @@ case "${1:-menu}" in
         done
         ;;
     "--help")
+        echo "绿联LED控制工具 v$VERSION"
         echo "用法: LLLED [选项]"
         echo "  --off          关闭所有LED"
         echo "  --on           打开所有LED"
         echo "  --disk-status  智能硬盘状态显示"
         echo "  --monitor      实时硬盘活动监控"
+        echo "  --version      显示版本信息"
         echo "  --help         显示帮助"
+        ;;
+    "--version")
+        echo "绿联LED控制工具 v$VERSION"
+        echo "项目地址: https://github.com/BearHero520/LLLED"
+        echo "功能: 智能硬盘映射 | 实时监控 | LED控制"
         ;;
     "menu"|"")
         detect_disk_mapping
@@ -316,7 +326,7 @@ case "${1:-menu}" in
         done
         ;;
     *)
-        echo "未知选项: $1"
+        echo "LLLED v$VERSION - 未知选项: $1"
         echo "使用 LLLED --help 查看帮助"
         exit 1
         ;;
