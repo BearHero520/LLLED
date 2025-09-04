@@ -49,17 +49,51 @@ files=(
 )
 
 for file in "${files[@]}"; do
-    wget -q "${GITHUB_RAW_URL}/${file}" -O "$file" 2>/dev/null || echo "跳过: $file"
+    echo "下载: $file"
+    if ! wget -q "${GITHUB_RAW_URL}/${file}" -O "$file"; then
+        echo -e "${YELLOW}警告: 无法下载 $file${NC}"
+    fi
 done
 
 # 下载LED控制程序
-wget -q "https://github.com/miskcoo/ugreen_leds_controller/releases/download/v0.1-debian12/ugreen_leds_cli" -O "ugreen_leds_cli" 2>/dev/null
+echo "下载LED控制程序..."
+LED_CLI_URLS=(
+    "https://github.com/miskcoo/ugreen_leds_controller/releases/download/v0.1-debian12/ugreen_leds_cli"
+    "https://github.com/miskcoo/ugreen_leds_controller/releases/latest/download/ugreen_leds_cli"
+)
+
+for url in "${LED_CLI_URLS[@]}"; do
+    echo "尝试下载: $url"
+    if wget -q "$url" -O "ugreen_leds_cli"; then
+        echo -e "${GREEN}✓ LED控制程序下载成功${NC}"
+        break
+    else
+        echo -e "${YELLOW}下载失败，尝试下一个源...${NC}"
+    fi
+done
+
+# 验证关键文件
+if [[ ! -f "ugreen_leds_cli" ]]; then
+    echo -e "${RED}错误: LED控制程序下载失败${NC}"
+    echo "请手动下载: https://github.com/miskcoo/ugreen_leds_controller/releases"
+fi
 
 # 设置权限
 chmod +x *.sh scripts/*.sh ugreen_leds_cli 2>/dev/null
 
 # 创建命令链接
-ln -sf "$INSTALL_DIR/ugreen_led_controller.sh" /usr/local/bin/LLLED
+if [[ -f "$INSTALL_DIR/ugreen_led_controller.sh" ]]; then
+    ln -sf "$INSTALL_DIR/ugreen_led_controller.sh" /usr/local/bin/LLLED
+    echo -e "${GREEN}✓ 安装完成！使用 'sudo LLLED' 启动${NC}"
+else
+    echo -e "${RED}错误: 主控制脚本未找到${NC}"
+fi
 
-echo -e "${GREEN}✓ 安装完成！使用 'sudo LLLED' 启动${NC}"
+# 最终验证
+echo -e "\n${CYAN}安装验证:${NC}"
+echo "安装目录: $INSTALL_DIR"
+echo "主程序: $(ls -la "$INSTALL_DIR/ugreen_led_controller.sh" 2>/dev/null || echo "未找到")"
+echo "LED控制程序: $(ls -la "$INSTALL_DIR/ugreen_leds_cli" 2>/dev/null || echo "未找到")"
+echo "命令链接: $(ls -la /usr/local/bin/LLLED 2>/dev/null || echo "未找到")"
+
 echo "项目地址: https://github.com/${GITHUB_REPO}"
