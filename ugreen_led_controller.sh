@@ -296,7 +296,7 @@ case "${1:-menu}" in
                     echo
                     echo "选项:"
                     echo "1) 运行映射测试工具"
-                    echo "2) 手动编辑配置文件"
+                    echo "2) 交互式配置映射 (推荐)"
                     echo -n "请选择: "
                     read -r sub_choice
                     case $sub_choice in
@@ -308,9 +308,17 @@ case "${1:-menu}" in
                             fi
                             ;;
                         2)
-                            echo "配置文件位置: /opt/ugreen-led-controller/config/disk_mapping.conf"
-                            echo "格式: /dev/设备名=led名称"
-                            echo "例如: /dev/sda=disk1"
+                            if [[ -x "/opt/ugreen-led-controller/scripts/configure_mapping.sh" ]]; then
+                                echo "启动交互式硬盘映射配置工具..."
+                                /opt/ugreen-led-controller/scripts/configure_mapping.sh --configure
+                                echo "配置完成，重新加载映射..."
+                                detect_disk_mapping
+                            else
+                                echo "交互式配置工具未找到"
+                                echo "手动编辑配置文件: /opt/ugreen-led-controller/config/disk_mapping.conf"
+                                echo "格式: /dev/设备名=led名称"
+                                echo "例如: /dev/sda=disk4  # 将sda映射到第4个LED"
+                            fi
                             ;;
                     esac
                     read -p "按回车继续..."
