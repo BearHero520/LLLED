@@ -2,9 +2,9 @@
 
 # 绿联LED控制工具 - 智能硬盘映射版
 # 项目地址: https://github.com/BearHero520/LLLED
-# 版本: 1.2.0 (修复版)
+# 版本: 1.3.0 (交互式映射配置版)
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
