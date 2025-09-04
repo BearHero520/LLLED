@@ -1,16 +1,6 @@
 #!/bin/bash
 
-# 绿联4800plus LED控制工具 - 精简版
-# 项目地址: https://github.com/BearHero520/LLLED
-
-# 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPTS_DIR="$SCRIPT_DIR/scripts"
-UGREEN_LEDS_CLI="$SCRIPT_DIR/ugreen_leds_cli"
-
-#!/bin/bash
-
-# 绿联LED控制工具 - 修复版
+# 绿联LED控制工具 - 智能硬盘映射版
 # 项目地址: https://github.com/BearHero520/LLLED
 
 RED='\033[0;31m'
