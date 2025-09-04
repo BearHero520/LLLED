@@ -62,20 +62,34 @@ LED_CLI_URLS=(
     "https://github.com/miskcoo/ugreen_leds_controller/releases/latest/download/ugreen_leds_cli"
 )
 
+LED_DOWNLOADED=false
 for url in "${LED_CLI_URLS[@]}"; do
     echo "尝试下载: $url"
-    if wget -q "$url" -O "ugreen_leds_cli"; then
+    if wget --timeout=30 -q "$url" -O "ugreen_leds_cli" && [[ -s "ugreen_leds_cli" ]]; then
         echo -e "${GREEN}✓ LED控制程序下载成功${NC}"
+        LED_DOWNLOADED=true
         break
     else
         echo -e "${YELLOW}下载失败，尝试下一个源...${NC}"
+        rm -f "ugreen_leds_cli" 2>/dev/null
     fi
 done
 
 # 验证关键文件
-if [[ ! -f "ugreen_leds_cli" ]]; then
+if [[ "$LED_DOWNLOADED" != "true" ]]; then
     echo -e "${RED}错误: LED控制程序下载失败${NC}"
-    echo "请手动下载: https://github.com/miskcoo/ugreen_leds_controller/releases"
+    echo "正在创建临时解决方案..."
+    
+    # 创建一个临时的LED控制程序提示
+    cat > "ugreen_leds_cli" << 'EOF'
+#!/bin/bash
+echo "LED控制程序未正确安装"
+echo "请手动下载: https://github.com/miskcoo/ugreen_leds_controller/releases"
+echo "下载后放置到: /opt/ugreen-led-controller/ugreen_leds_cli"
+exit 1
+EOF
+    
+    echo -e "${YELLOW}已创建临时文件，请手动下载LED控制程序${NC}"
 fi
 
 # 设置权限
