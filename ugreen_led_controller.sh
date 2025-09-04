@@ -180,7 +180,7 @@ case "${1:-menu}" in
         detect_disk_mapping
         echo "设置智能硬盘状态..."
         for disk in "${DISKS[@]}"; do
-            local status=$(get_disk_status "$disk")
+            status=$(get_disk_status "$disk")
             set_disk_led "$disk" "$status"
             echo "$disk -> ${DISK_LED_MAP[$disk]} [$status]"
         done
@@ -190,7 +190,7 @@ case "${1:-menu}" in
         echo "启动实时硬盘监控 (按Ctrl+C停止)..."
         while true; do
             for disk in "${DISKS[@]}"; do
-                local status=$(get_disk_status "$disk")
+                status=$(get_disk_status "$disk")
                 set_disk_led "$disk" "$status"
             done
             sleep 2
@@ -223,7 +223,7 @@ case "${1:-menu}" in
                 3) 
                     echo "设置智能硬盘状态..."
                     for disk in "${DISKS[@]}"; do
-                        local status=$(get_disk_status "$disk")
+                        status=$(get_disk_status "$disk")
                         set_disk_led "$disk" "$status"
                         echo "$disk -> ${DISK_LED_MAP[$disk]} [$status]"
                     done
@@ -238,9 +238,9 @@ case "${1:-menu}" in
                         echo -e "${CYAN}实时硬盘活动监控${NC}"
                         echo "===================="
                         for disk in "${DISKS[@]}"; do
-                            local status=$(get_disk_status "$disk")
+                            status=$(get_disk_status "$disk")
                             set_disk_led "$disk" "$status"
-                            local led_name="${DISK_LED_MAP[$disk]}"
+                            led_name="${DISK_LED_MAP[$disk]}"
                             printf "%-12s -> %-6s [%s]\n" "$disk" "$led_name" "$status"
                         done
                         echo "按Ctrl+C停止监控"
