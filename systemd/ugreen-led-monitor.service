@@ -1,0 +1,22 @@
+[Unit]
+Description=UGREEN LED Monitor Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ugreen-led-controller
+ExecStart=/opt/ugreen-led-controller/scripts/system_overview.sh monitor 60
+Restart=always
+RestartSec=10
+
+# 环境变量
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 日志设置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ugreen-led-monitor
+
+[Install]
+WantedBy=multi-user.target
