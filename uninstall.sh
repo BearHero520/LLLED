@@ -1,53 +1,55 @@
 #!/bin/bash
 
-# LLLED完全卸载脚本
-# 完全清理系统中的LLLED相关文件和配置
+# LLLED完全卸载脚本 - 确保彻底清理
 
-# 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
 NC='\033[0m'
 
 # 安装路径
 INSTALL_DIR="/opt/ugreen-led-controller"
 SERVICE_FILE="/etc/systemd/system/ugreen-led-monitor.service"
 COMMAND_LINK="/usr/local/bin/LLLED"
-BACKUP_DIR="/tmp/llled-backup-$(date +%Y%m%d-%H%M%S)"
 
-# 检查权限
-check_root() {
-    if [[ $EUID -ne 0 ]]; then
-        echo -e "${RED}错误: 需要root权限运行卸载脚本${NC}"
-        echo "请使用: sudo $0"
-        exit 1
-    fi
-}
+# 检查root权限
+[[ $EUID -ne 0 ]] && { echo -e "${RED}需要root权限: sudo $0${NC}"; exit 1; }
 
-# 显示卸载信息
-show_uninstall_info() {
-    echo -e "${CYAN}================================${NC}"
-    echo -e "${CYAN}     LLLED 完全卸载工具${NC}"
-    echo -e "${CYAN}================================${NC}"
-    echo
-    echo -e "${YELLOW}即将卸载以下组件:${NC}"
-    echo "  • LLLED命令链接: $COMMAND_LINK"
-    echo "  • 安装目录: $INSTALL_DIR"
-    echo "  • 系统服务: $SERVICE_FILE"
-    echo "  • 相关配置文件和脚本"
-    echo
-    echo -e "${BLUE}备份目录: $BACKUP_DIR${NC}"
-    echo
-}
+echo -e "${YELLOW}LLLED 完全卸载工具${NC}"
+echo "即将删除所有相关文件..."
+echo
 
-# 询问用户确认
-confirm_uninstall() {
-    echo -e "${YELLOW}您确定要完全卸载LLLED吗？${NC}"
-    echo -e "${RED}警告: 此操作将删除所有配置文件和自定义设置！${NC}"
-    echo
-    echo "选项:"
+# 停止服务
+echo "停止系统服务..."
+systemctl stop ugreen-led-monitor.service 2>/dev/null
+systemctl disable ugreen-led-monitor.service 2>/dev/null
+rm -f "$SERVICE_FILE"
+systemctl daemon-reload
+
+# 删除命令链接
+echo "删除LLLED命令..."
+rm -f "$COMMAND_LINK"
+
+# 删除安装目录
+echo "删除程序文件..."
+rm -rf "$INSTALL_DIR"
+
+# 清理其他可能的安装位置
+echo "清理其他位置..."
+rm -f /usr/bin/LLLED
+rm -f /bin/LLLED
+rm -rf /etc/ugreen-led-controller
+rm -rf /var/lib/ugreen-led-controller
+
+# 验证清理结果
+if command -v LLLED >/dev/null 2>&1; then
+    echo -e "${RED}警告: LLLED命令仍然可用，可能存在其他安装${NC}"
+    which LLLED
+else
+    echo -e "${GREEN}✓ LLLED已完全卸载${NC}"
+fi
+
+echo "卸载完成！"
     echo "  1) 完全卸载 (删除所有文件)"
     echo "  2) 保留配置卸载 (保留配置文件)"
     echo "  3) 仅停用服务 (保留程序文件)"
