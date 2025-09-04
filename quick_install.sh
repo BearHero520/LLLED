@@ -18,14 +18,15 @@ echo -e "${YELLOW}LLLED 一键安装工具${NC}"
 echo "正在安装..."
 
 # 安装依赖
+echo "安装必要依赖..."
 if command -v apt-get >/dev/null 2>&1; then
-    apt-get update -qq && apt-get install -y wget i2c-tools smartmontools bc -qq
+    apt-get update -qq && apt-get install -y wget i2c-tools smartmontools bc sysstat util-linux -qq
 elif command -v yum >/dev/null 2>&1; then
-    yum install -y wget i2c-tools smartmontools bc -q
+    yum install -y wget i2c-tools smartmontools bc sysstat util-linux -q
 elif command -v dnf >/dev/null 2>&1; then
-    dnf install -y wget i2c-tools smartmontools bc -q
+    dnf install -y wget i2c-tools smartmontools bc sysstat util-linux -q
 else
-    echo -e "${YELLOW}请手动安装: wget i2c-tools smartmontools bc${NC}"
+    echo -e "${YELLOW}请手动安装: wget i2c-tools smartmontools bc sysstat util-linux${NC}"
 fi
 
 # 加载i2c模块
@@ -45,7 +46,9 @@ files=(
     "scripts/rainbow_effect.sh"
     "scripts/smart_disk_activity.sh"
     "scripts/custom_modes.sh"
+    "scripts/led_mapping_test.sh"
     "config/led_mapping.conf"
+    "config/disk_mapping.conf"
 )
 
 for file in "${files[@]}"; do
