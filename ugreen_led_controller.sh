@@ -135,6 +135,25 @@ set_disk_led() {
     fi
 }
 
+# 恢复系统LED状态
+restore_system_leds() {
+    echo "恢复系统LED状态..."
+    
+    # 恢复电源LED (绿色常亮)
+    $UGREEN_LEDS_CLI power -color 0 255 0 -on -brightness 128
+    
+    # 恢复网络LED (根据网络状态)
+    if ip route | grep -q default; then
+        # 有网络连接，蓝色常亮
+        $UGREEN_LEDS_CLI netdev -color 0 100 255 -on -brightness 128
+    else
+        # 无网络连接，橙色常亮
+        $UGREEN_LEDS_CLI netdev -color 255 165 0 -on -brightness 64
+    fi
+    
+    echo "系统LED已恢复正常"
+}
+
 # 显示硬盘映射信息
 show_disk_mapping() {
     echo -e "${CYAN}硬盘LED映射信息:${NC}"
@@ -164,6 +183,7 @@ show_menu() {
     echo "7) 夜间模式"
     echo "8) 显示硬盘映射"
     echo "9) 配置硬盘映射"
+    echo "s) 恢复系统LED (电源+网络)"
     echo "0) 退出"
     echo "=================================="
     echo -n "请选择: "
@@ -199,6 +219,9 @@ case "${1:-menu}" in
             sleep 2
         done
         ;;
+    "--system")
+        restore_system_leds
+        ;;
     "--help")
         echo "绿联LED控制工具 v$VERSION"
         echo "用法: LLLED [选项]"
@@ -206,6 +229,7 @@ case "${1:-menu}" in
         echo "  --on           打开所有LED"
         echo "  --disk-status  智能硬盘状态显示"
         echo "  --monitor      实时硬盘活动监控"
+        echo "  --system       恢复系统LED (电源+网络)"
         echo "  --version      显示版本信息"
         echo "  --help         显示帮助"
         ;;
@@ -273,10 +297,17 @@ case "${1:-menu}" in
                     ;;
                 6) 
                     echo "设置节能模式..."
+                    # 保持电源LED低亮度显示
                     $UGREEN_LEDS_CLI power -color 0 255 0 -on -brightness 32
-                    $UGREEN_LEDS_CLI netdev -off
+                    # 保持网络LED低亮度显示
+                    if ip route | grep -q default; then
+                        $UGREEN_LEDS_CLI netdev -color 0 100 255 -on -brightness 32
+                    else
+                        $UGREEN_LEDS_CLI netdev -color 255 165 0 -on -brightness 32
+                    fi
+                    # 关闭硬盘LED
                     for i in {1..4}; do $UGREEN_LEDS_CLI disk$i -off; done
-                    echo "节能模式已设置"
+                    echo "节能模式已设置 (保持系统LED显示)"
                     read -p "按回车继续..."
                     ;;
                 7) 
@@ -321,6 +352,10 @@ case "${1:-menu}" in
                             fi
                             ;;
                     esac
+                    read -p "按回车继续..."
+                    ;;
+                s|S)
+                    restore_system_leds
                     read -p "按回车继续..."
                     ;;
                 0) 
