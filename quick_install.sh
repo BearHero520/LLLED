@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # 绿联4800plus LED控制工具 - 一键安装脚本 (精简版)
+# 版本: 1.3.1 (防缓存版)
+# 更新时间: 2025-09-05
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,7 +16,8 @@ INSTALL_DIR="/opt/ugreen-led-controller"
 # 检查root权限
 [[ $EUID -ne 0 ]] && { echo -e "${RED}需要root权限: sudo bash $0${NC}"; exit 1; }
 
-echo -e "${YELLOW}LLLED 一键安装工具${NC}"
+echo -e "${YELLOW}LLLED 一键安装工具 v1.3.1${NC}"
+echo "更新时间: 2025-09-05"
 echo "正在安装..."
 
 # 清理旧版本
@@ -91,9 +94,14 @@ files=(
     "config/disk_mapping.conf"
 )
 
+# 添加时间戳防止缓存
+TIMESTAMP=$(date +%s)
+echo "时间戳: $TIMESTAMP (防缓存)"
+
 for file in "${files[@]}"; do
     echo "下载: $file"
-    if ! wget -q "${GITHUB_RAW_URL}/${file}" -O "$file"; then
+    # 添加时间戳参数防止缓存，并禁用缓存
+    if ! wget --no-cache --no-cookies -q "${GITHUB_RAW_URL}/${file}?t=${TIMESTAMP}" -O "$file"; then
         echo -e "${YELLOW}警告: 无法下载 $file${NC}"
     fi
 done

@@ -30,11 +30,11 @@ sudo modprobe i2c-dev
 ### 🚀 一键安装使用
 
 ```bash
-# 方法1: 使用wget
-wget -O- https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh | sudo bash
+# 方法1: 使用wget (防缓存版本)
+wget -O- "https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh?$(date +%s)" | sudo bash
 
-# 方法2: 使用curl
-curl -sSL https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh | sudo bash
+# 方法2: 使用curl (防缓存版本)
+curl -sSL "https://raw.githubusercontent.com/BearHero520/LLLED/main/quick_install.sh?$(date +%s)" | sudo bash
 
 # 安装完成后，直接使用
 LLLED
