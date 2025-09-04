@@ -86,6 +86,7 @@ files=(
     "scripts/smart_disk_activity.sh"
     "scripts/custom_modes.sh"
     "scripts/led_mapping_test.sh"
+    "scripts/configure_mapping.sh"
     "config/led_mapping.conf"
     "config/disk_mapping.conf"
 )
