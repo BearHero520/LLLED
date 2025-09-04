@@ -61,14 +61,12 @@ detect_disk_mapping() {
             DISK_LED_MAP["$disk"]="$led"
         done < "$config_file"
     else
-        echo "使用默认映射..."
-        # 默认映射
+        echo "未找到配置文件，使用默认映射..."
+        # 仅在没有配置文件时才使用默认映射
         DISK_LED_MAP["/dev/sda"]="disk1"
         DISK_LED_MAP["/dev/sdb"]="disk2" 
         DISK_LED_MAP["/dev/sdc"]="disk3"
         DISK_LED_MAP["/dev/sdd"]="disk4"
-        DISK_LED_MAP["/dev/nvme0n1"]="disk1"
-        DISK_LED_MAP["/dev/nvme1n1"]="disk2"
     fi
     
     # 显示当前映射
