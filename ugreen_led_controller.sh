@@ -62,15 +62,11 @@ detect_disk_mapping() {
         done < "$config_file"
     else
         echo "未找到配置文件，使用默认映射..."
-        # 仅在没有配置文件时才使用默认映射（支持8盘位）
+        # 仅在没有配置文件时才使用默认映射
         DISK_LED_MAP["/dev/sda"]="disk1"
         DISK_LED_MAP["/dev/sdb"]="disk2" 
         DISK_LED_MAP["/dev/sdc"]="disk3"
         DISK_LED_MAP["/dev/sdd"]="disk4"
-        DISK_LED_MAP["/dev/sde"]="disk5"
-        DISK_LED_MAP["/dev/sdf"]="disk6"
-        DISK_LED_MAP["/dev/sdg"]="disk7"
-        DISK_LED_MAP["/dev/sdh"]="disk8"
     fi
     
     # 显示当前映射
@@ -201,12 +197,6 @@ show_menu() {
     echo "7) 夜间模式"
     echo "8) 显示硬盘映射"
     echo "9) 配置硬盘映射"
-    echo "d) 设备检测 (检测LED数量)"
-    echo "s) 恢复系统LED (电源+网络)"
-    echo "0) 退出"
-    echo "7) 夜间模式"
-    echo "8) 显示硬盘映射"
-    echo "9) 配置硬盘映射"
     echo "s) 恢复系统LED (电源+网络)"
     echo "0) 退出"
     echo "=================================="
@@ -329,8 +319,8 @@ case "${1:-menu}" in
                     else
                         $UGREEN_LEDS_CLI netdev -color 255 165 0 -on -brightness 32
                     fi
-                    # 关闭硬盘LED (支持8盘位)
-                    for i in {1..8}; do $UGREEN_LEDS_CLI disk$i -off 2>/dev/null; done
+                    # 关闭硬盘LED
+                    for i in {1..4}; do $UGREEN_LEDS_CLI disk$i -off; done
                     echo "节能模式已设置 (保持系统LED显示)"
                     read -p "按回车继续..."
                     ;;
@@ -376,27 +366,6 @@ case "${1:-menu}" in
                             fi
                             ;;
                     esac
-                    read -p "按回车继续..."
-                    ;;
-                d|D)
-                    echo -e "${CYAN}设备检测${NC}"
-                    if [[ -x "/opt/ugreen-led-controller/scripts/device_detector.sh" ]]; then
-                        echo "启动设备检测工具..."
-                        /opt/ugreen-led-controller/scripts/device_detector.sh
-                    else
-                        echo "设备检测工具未找到"
-                        echo "正在手动检测LED数量..."
-                        echo "测试硬盘LED (1-8)..."
-                        for i in {1..8}; do
-                            if "$UGREEN_LEDS_CLI" "disk$i" -color 0 255 0 -on >/dev/null 2>&1; then
-                                echo "  disk$i: 可用"
-                                "$UGREEN_LEDS_CLI" "disk$i" -off >/dev/null 2>&1
-                            else
-                                echo "  disk$i: 不可用"
-                                break
-                            fi
-                        done
-                    fi
                     read -p "按回车继续..."
                     ;;
                 s|S)

@@ -1,15 +1,12 @@
 #!/bin/bash
 
-# 绿联4800plus LED控制工具 - 一键安装脚本 v2.0
-# 增强版本：支持HCTL映射、智能硬盘状态检测
-# 版本: 2.0.0
+# 绿联4800plus LED控制工具 - 一键安装脚本 (精简版)
+# 版本: 1.3.1 (防缓存版)
 # 更新时间: 2025-09-05
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BLUE='\033[0;34m'
 NC='\033[0m'
 
 GITHUB_REPO="BearHero520/LLLED"
@@ -19,17 +16,8 @@ INSTALL_DIR="/opt/ugreen-led-controller"
 # 检查root权限
 [[ $EUID -ne 0 ]] && { echo -e "${RED}需要root权限: sudo bash $0${NC}"; exit 1; }
 
-echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${CYAN}                    LLLED v2.0 一键安装工具${NC}"
-echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${YELLOW}新功能特性:${NC}"
-echo "  • 增强智能硬盘状态检测"
-echo "  • 支持HCTL、序列号多种映射方式"  
-echo "  • 交互式LED配置工具"
-echo "  • 硬盘映射检测器"
-echo "  • 一键映射配置"
-echo "  • 详细硬盘健康监控"
-echo -e "${YELLOW}更新时间: 2025-09-05${NC}"
+echo -e "${YELLOW}LLLED 一键安装工具 v1.3.1${NC}"
+echo "更新时间: 2025-09-05"
 echo "正在安装..."
 
 # 清理旧版本
@@ -92,27 +80,18 @@ mkdir -p "$INSTALL_DIR"/{scripts,config,systemd}
 cd "$INSTALL_DIR"
 
 echo "下载主程序..."
-# 下载所有必要文件
 files=(
     "ugreen_led_controller.sh"
+    "uninstall.sh"
     "scripts/disk_status_leds.sh"
-    "scripts/led_test.sh"
-    "scripts/system_overview.sh"
-    "scripts/network_status.sh"
-    "scripts/custom_colors.sh"
-    "scripts/temperature_monitor.sh"
     "scripts/turn_off_all_leds.sh"
     "scripts/rainbow_effect.sh"
     "scripts/smart_disk_activity.sh"
     "scripts/custom_modes.sh"
     "scripts/led_mapping_test.sh"
     "scripts/configure_mapping.sh"
-    "scripts/disk_mapping_detector.sh"
-    "scripts/one_click_mapping.sh"
-    "scripts/device_detector.sh"
     "config/led_mapping.conf"
     "config/disk_mapping.conf"
-    "systemd/ugreen-led-monitor.service"
 )
 
 # 添加时间戳防止缓存
@@ -165,7 +144,6 @@ EOF
 fi
 
 # 设置权限
-echo -e "${CYAN}设置文件权限...${NC}"
 chmod +x *.sh scripts/*.sh ugreen_leds_cli 2>/dev/null
 
 # 创建命令链接
@@ -176,56 +154,33 @@ else
     echo -e "${RED}错误: 主控制脚本未找到${NC}"
 fi
 
-# 安装后配置
-echo -e "\n${CYAN}执行安装后配置...${NC}"
-
-# 检测当前硬盘配置
-echo "检测硬盘配置..."
-if command -v lsblk >/dev/null 2>&1; then
-    echo "当前硬盘HCTL信息:"
-    lsblk -S -x hctl -o name,hctl,serial 2>/dev/null || echo "无HCTL信息"
+# 修复主脚本的路径问题（临时解决方案）
+if [[ -f "$INSTALL_DIR/ugreen_led_controller.sh" ]]; then
+    echo "安装智能硬盘映射版本..."
+    
+    # 检查是否需要更新到新版本
+    if ! grep -q "智能硬盘映射" "$INSTALL_DIR/ugreen_led_controller.sh" 2>/dev/null; then
+        echo "升级到智能硬盘映射版本..."
+        
+        # 备份旧版本
+        cp "$INSTALL_DIR/ugreen_led_controller.sh" "$INSTALL_DIR/ugreen_led_controller.sh.backup" 2>/dev/null || true
+        
+        # 重新下载最新版本
+        echo "下载最新的智能版本..."
+        if wget -q "${GITHUB_RAW_URL}/ugreen_led_controller.sh" -O "$INSTALL_DIR/ugreen_led_controller.sh"; then
+            echo "智能硬盘映射版本安装成功"
+        else
+            echo "下载失败，恢复备份版本"
+            cp "$INSTALL_DIR/ugreen_led_controller.sh.backup" "$INSTALL_DIR/ugreen_led_controller.sh" 2>/dev/null || true
+        fi
+        
+        chmod +x "$INSTALL_DIR/ugreen_led_controller.sh"
+    else
+        echo "已经是最新的智能版本"
+    fi
 fi
 
-# 创建systemd目录
-mkdir -p "$INSTALL_DIR/systemd"
-
-echo -e "${GREEN}✓ 安装完成！${NC}"
-
-# 安装后提示
-echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${CYAN}                     安装完成${NC}"
-echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo
-echo -e "${WHITE}基本使用:${NC}"
-echo "  sudo LLLED                    # 主菜单"
-echo "  sudo LLLED smart              # 智能硬盘状态检测"
-echo "  sudo LLLED test               # LED测试"
-echo "  sudo LLLED status             # 查看当前状态"
-echo
-echo -e "${WHITE}配置工具:${NC}"
-echo "  sudo LLLED config             # 交互式配置"
-echo "  sudo LLLED auto-config        # 一键自动配置"
-echo "  sudo LLLED detect             # 硬盘映射检测"
-echo
-echo -e "${WHITE}新功能:${NC}"
-echo "  • 智能硬盘状态检测 (SMART + 温度 + 活动监控)"
-echo "  • HCTL映射支持 (自动识别物理槽位)"
-echo "  • 序列号映射支持 (永久性映射)"
-echo "  • 交互式LED位置识别"
-echo "  • 增强的LED测试功能"
-echo "  • 8盘位设备完整支持 (disk1-disk8)"
-echo "  • 自动设备检测 (LED数量识别)"
-echo
-echo -e "${WHITE}支持设备:${NC}"
-echo "  • 2盘位: DX2100 等"
-echo "  • 4盘位: DX4600 Pro, DX4700+, DXP4800 系列"
-echo "  • 6盘位: DXP6800 Pro"
-echo "  • 8盘位: DXP8800 Plus (完整8个LED支持)"
-echo
-echo -e "${YELLOW}重要提示:${NC}"
-echo "  首次使用建议运行: sudo LLLED auto-config"
-echo "  这将根据您的硬盘HCTL信息自动配置最佳映射"
-echo "  8盘位用户可以完整使用所有8个硬盘LED"
+echo -e "${GREEN}✓ 安装完成！使用 'sudo LLLED' 启动${NC}"
 
 # 最终验证
 echo -e "\n${CYAN}安装验证:${NC}"
