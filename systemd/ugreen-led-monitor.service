@@ -1,22 +1,33 @@
 [Unit]
-Description=UGREEN LED Monitor Service
-After=network.target
+Description=UGREEN LED Auto Monitor Service - 硬盘状态和插拔监控
+Documentation=https://github.com/BearHero520/LLLED
+After=network.target local-fs.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/ugreen-led-controller
-ExecStart=/opt/ugreen-led-controller/scripts/system_overview.sh monitor 60
+ExecStart=/opt/ugreen-led-controller/scripts/led_daemon.sh _background 30
+ExecStop=/opt/ugreen-led-controller/scripts/led_daemon.sh stop
+ExecReload=/opt/ugreen-led-controller/scripts/led_daemon.sh restart
 Restart=always
 RestartSec=10
+TimeoutStartSec=30
+TimeoutStopSec=30
 
 # 环境变量
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=SHELL=/bin/bash
 
 # 日志设置
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=ugreen-led-monitor
+
+# 安全设置
+PrivateTmp=false
+ProtectSystem=false
+NoNewPrivileges=false
 
 [Install]
 WantedBy=multi-user.target

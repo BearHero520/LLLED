@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 关闭所有LED灯脚本
+# 关闭所有LED灯脚本 - 动态检测版本
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
@@ -8,11 +8,15 @@ source "$SCRIPT_DIR/config/led_mapping.conf"
 
 UGREEN_LEDS_CLI="$SCRIPT_DIR/ugreen_leds_cli"
 
+# 全局变量
+AVAILABLE_LEDS=()
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 # 日志函数
@@ -42,9 +46,41 @@ turn_off_led() {
     fi
 }
 
+# 检测可用LED
+detect_available_leds() {
+    log_message "${CYAN}检测可用LED...${NC}"
+    
+    local led_status
+    led_status=$("$UGREEN_LEDS_CLI" all -status 2>/dev/null)
+    
+    if [[ -z "$led_status" ]]; then
+        log_message "${RED}无法检测LED状态，请检查ugreen_leds_cli${NC}"
+        return 1
+    fi
+    
+    AVAILABLE_LEDS=()
+    
+    # 解析LED状态，提取可用的LED
+    while read -r line; do
+        if [[ "$line" =~ LED[[:space:]]+([^[:space:]]+) ]]; then
+            local led_name="${BASH_REMATCH[1]}"
+            AVAILABLE_LEDS+=("$led_name")
+            log_message "${GREEN}✓ 检测到LED: $led_name${NC}"
+        fi
+    done <<< "$led_status"
+    
+    if [[ ${#AVAILABLE_LEDS[@]} -eq 0 ]]; then
+        log_message "${RED}未检测到任何LED${NC}"
+        return 1
+    fi
+    
+    log_message "${BLUE}检测到 ${#AVAILABLE_LEDS[@]} 个LED: ${AVAILABLE_LEDS[*]}${NC}"
+    return 0
+}
+
 # 主函数
 main() {
-    log_message "${BLUE}开始关闭所有LED灯...${NC}"
+    log_message "${BLUE}开始关闭所有LED灯 (动态检测版)...${NC}"
     
     # 检查必要程序
     if [[ ! -f "$UGREEN_LEDS_CLI" ]]; then
@@ -52,14 +88,24 @@ main() {
         exit 1
     fi
     
+    # 检测可用LED
+    if ! detect_available_leds; then
+        log_message "${RED}LED检测失败，使用备用方法${NC}"
+        # 备用方法：直接使用all参数
+        if "$UGREEN_LEDS_CLI" all -off >/dev/null 2>&1; then
+            log_message "${GREEN}✓ 所有LED灯已关闭 (备用方法)${NC}"
+        else
+            log_message "${RED}✗ LED关闭失败${NC}"
+            exit 1
+        fi
+        return 0
+    fi
+    
     local success_count=0
     local total_count=0
     
-    # LED名称列表
-    local led_names=("power" "netdev" "disk1" "disk2" "disk3" "disk4")
-    
-    # 关闭每个LED
-    for led_name in "${led_names[@]}"; do
+    # 关闭每个检测到的LED
+    for led_name in "${AVAILABLE_LEDS[@]}"; do
         ((total_count++))
         if turn_off_led "$led_name"; then
             ((success_count++))

@@ -1,12 +1,15 @@
 #!/bin/bash
 
-# 彩虹跑马灯效果脚本
+# 彩虹跑马灯效果脚本 - 动态检测版本
 
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 source "$SCRIPT_DIR/config/led_mapping.conf"
 
 UGREEN_LEDS_CLI="$SCRIPT_DIR/ugreen_leds_cli"
+
+# 全局变量
+AVAILABLE_LEDS=()
 
 # 颜色定义
 RED='\033[0;31m'
@@ -38,8 +41,40 @@ rainbow_colors=(
     "255 0 127"   # 紫红色
 )
 
-# LED名称数组
-led_names=("power" "netdev" "disk1" "disk2" "disk3" "disk4")
+# 检测可用LED
+detect_available_leds() {
+    log_message "${CYAN}检测可用LED...${NC}"
+    
+    local led_status
+    led_status=$("$UGREEN_LEDS_CLI" all -status 2>/dev/null)
+    
+    if [[ -z "$led_status" ]]; then
+        log_message "${RED}无法检测LED状态，请检查ugreen_leds_cli${NC}"
+        return 1
+    fi
+    
+    AVAILABLE_LEDS=()
+    
+    # 解析LED状态，提取可用的LED
+    while read -r line; do
+        if [[ "$line" =~ LED[[:space:]]+([^[:space:]]+) ]]; then
+            local led_name="${BASH_REMATCH[1]}"
+            AVAILABLE_LEDS+=("$led_name")
+            log_message "${GREEN}✓ 检测到LED: $led_name${NC}"
+        fi
+    done <<< "$led_status"
+    
+    if [[ ${#AVAILABLE_LEDS[@]} -eq 0 ]]; then
+        log_message "${RED}未检测到任何LED${NC}"
+        return 1
+    fi
+    
+    log_message "${BLUE}检测到 ${#AVAILABLE_LEDS[@]} 个LED: ${AVAILABLE_LEDS[*]}${NC}"
+    return 0
+}
+
+# LED名称数组 - 将在运行时动态填充
+led_names=()
 
 # 设置LED颜色
 set_led_color() {
@@ -215,6 +250,15 @@ main() {
         log_message "${RED}错误: 未找到ugreen_leds_cli程序${NC}"
         exit 1
     fi
+    
+    # 检测可用LED
+    if ! detect_available_leds; then
+        log_message "${RED}LED检测失败${NC}"
+        exit 1
+    fi
+    
+    # 将检测到的LED复制到led_names数组
+    led_names=("${AVAILABLE_LEDS[@]}")
     
     # 检查bc命令(用于浮点运算)
     if ! command -v bc >/dev/null 2>&1; then
