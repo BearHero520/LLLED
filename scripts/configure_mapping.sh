@@ -142,12 +142,11 @@ EOF
                     echo "  $i) disk$i (第${i}个LED)"
                 fi
             done
-            echo "  n) 不映射 (不控制LED)"
             echo "  t) 测试LED位置"
             echo "  s) 跳过此硬盘"
             echo
             
-            read -p "请选择LED位置 (1-4/n/t/s): " choice
+            read -p "请选择LED位置 (1-4/t/s): " choice
             
             case "$choice" in
                 [1-4])
@@ -159,12 +158,6 @@ EOF
                     echo "$disk=disk$choice" >> "$CONFIG_FILE"
                     used_leds["disk$choice"]="$disk"
                     echo -e "${GREEN}已设置: $disk -> disk$choice${NC}"
-                    echo
-                    break
-                    ;;
-                "n"|"N")
-                    echo "$disk=none" >> "$CONFIG_FILE"
-                    echo -e "${YELLOW}已设置: $disk -> 不映射${NC}"
                     echo
                     break
                     ;;

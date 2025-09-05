@@ -72,11 +72,7 @@ detect_disk_mapping() {
     # 显示当前映射
     echo "当前硬盘映射:"
     for disk in "${DISKS[@]}"; do
-        local led_mapping="${DISK_LED_MAP[$disk]:-未映射}"
-        if [[ "$led_mapping" == "none" ]]; then
-            led_mapping="不映射"
-        fi
-        echo "  $disk -> $led_mapping"
+        echo "  $disk -> ${DISK_LED_MAP[$disk]:-未映射}"
     done
 }
 
@@ -118,11 +114,6 @@ set_disk_led() {
     local disk="$1"
     local status="$2"
     local led_name="${DISK_LED_MAP[$disk]}"
-    
-    # 跳过未映射或不映射的硬盘
-    if [[ -z "$led_name" || "$led_name" == "none" ]]; then
-        return 0
-    fi
     
     if [[ -n "$led_name" ]]; then
         case "$status" in
@@ -171,14 +162,7 @@ show_disk_mapping() {
         local status=$(get_disk_status "$disk")
         local model=$(lsblk -dno MODEL "$disk" 2>/dev/null | tr -d ' ')
         
-        # 如果是不映射，则不显示状态
-        if [[ "$led_name" == "none" ]]; then
-            printf "%-12s -> %-6s %s\n" "$disk" "不映射" "${model:0:20}"
-        elif [[ -z "$led_name" ]]; then
-            printf "%-12s -> %-6s [%s] %s\n" "$disk" "未设置" "$status" "${model:0:20}"
-        else
-            printf "%-12s -> %-6s [%s] %s\n" "$disk" "$led_name" "$status" "${model:0:20}"
-        fi
+        printf "%-12s -> %-6s [%s] %s\n" "$disk" "$led_name" "$status" "${model:0:20}"
     done
     echo
 }
