@@ -30,6 +30,7 @@ declare -A DISK_LED_MAP
 declare -A DISK_INFO
 declare -A DISK_HCTL_MAP
 declare -A ACTIVITY_CACHE
+declare -A LED_STATE_CACHE  # LED状态缓存，防止频繁变化
 
 # 日志函数
 log_message() {
@@ -304,10 +305,10 @@ check_disk_activity() {
         local current_time=$(date +%s)
         local cache_key="activity_${device}"
         
-        # 如果有缓存且时间差小于5秒，直接使用缓存
+        # 如果有缓存且时间差小于15秒，直接使用缓存
         if [[ -n "${ACTIVITY_CACHE[$cache_key]}" ]]; then
             local cached_time="${ACTIVITY_CACHE[${cache_key}_time]}"
-            if [[ $((current_time - cached_time)) -lt 5 ]]; then
+            if [[ $((current_time - cached_time)) -lt 15 ]]; then
                 echo "${ACTIVITY_CACHE[$cache_key]}"
                 return
             fi
@@ -362,7 +363,7 @@ check_disk_sleep() {
     echo "AWAKE"
 }
 
-# 设置硬盘LED根据活动状态
+# 设置硬盘LED根据活动状态 (带防抖机制)
 set_disk_led_by_activity() {
     local device="$1"
     local led_name="${DISK_LED_MAP[$device]}"
@@ -377,10 +378,16 @@ set_disk_led_by_activity() {
     # 检查设备是否仍然存在
     if [[ ! -b "$device" ]]; then
         # 离线状态：彻底关闭LED
-        log_message "设备 $device 离线，关闭LED $led_name"
-        "$UGREEN_CLI" "$led_name" -off >/dev/null 2>&1
-        # 双重确保LED关闭
-        "$UGREEN_CLI" "$led_name" -color 0 0 0 -off -brightness 0 >/dev/null 2>&1
+        local new_state="OFFLINE"
+        local cached_state="${LED_STATE_CACHE[$led_name]}"
+        
+        if [[ "$cached_state" != "$new_state" ]]; then
+            log_message "设备 $device 离线，关闭LED $led_name"
+            "$UGREEN_CLI" "$led_name" -off >/dev/null 2>&1
+            # 双重确保LED关闭
+            "$UGREEN_CLI" "$led_name" -color 0 0 0 -off -brightness 0 >/dev/null 2>&1
+            LED_STATE_CACHE[$led_name]="$new_state"
+        fi
         return
     fi
     
@@ -390,8 +397,14 @@ set_disk_led_by_activity() {
     
     if [[ "$sleep_status" == "SLEEPING" ]]; then
         # 休眠状态 - 关闭LED
-        log_message "设备 $device 休眠，关闭LED $led_name"
-        "$UGREEN_CLI" "$led_name" -off >/dev/null 2>&1
+        local new_state="SLEEPING"
+        local cached_state="${LED_STATE_CACHE[$led_name]}"
+        
+        if [[ "$cached_state" != "$new_state" ]]; then
+            log_message "设备 $device 休眠，关闭LED $led_name"
+            "$UGREEN_CLI" "$led_name" -off >/dev/null 2>&1
+            LED_STATE_CACHE[$led_name]="$new_state"
+        fi
         return
     fi
     
@@ -412,47 +425,61 @@ set_disk_led_by_activity() {
     fi
     log_message "设备 $device 健康状态: $health"
     
-    # 根据活动状态和健康状态设置LED
-    case "$health" in
-        "GOOD")
-            case "$activity" in
-                "ACTIVE")
-                    # 活动状态：白色，中等亮度
-                    log_message "设置 $led_name 为活动状态 (白色，亮度128)"
-                    "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 128 >/dev/null 2>&1
-                    ;;
-                "IDLE")
-                    # 空闲状态：淡白色，低亮度
-                    log_message "设置 $led_name 为空闲状态 (白色，亮度32)"
-                    "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 32 >/dev/null 2>&1
-                    ;;
-                *)
-                    # 状态未知 - 淡白色，低亮度
-                    log_message "设置 $led_name 为未知状态 (白色，亮度32)"
-                    "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 32 >/dev/null 2>&1
-                    ;;
-            esac
-            ;;
-        "BAD")
-            case "$activity" in
-                "ACTIVE")
-                    # 错误状态：红色闪烁
-                    log_message "设置 $led_name 为错误活动状态 (红色闪烁)"
-                    "$UGREEN_CLI" "$led_name" -color 255 0 0 -blink 500 500 -brightness 255 >/dev/null 2>&1
-                    ;;
-                *)
-                    # 错误状态：红色闪烁
-                    log_message "设置 $led_name 为错误状态 (红色闪烁)"
-                    "$UGREEN_CLI" "$led_name" -color 255 0 0 -blink 500 500 -brightness 255 >/dev/null 2>&1
-                    ;;
-            esac
-            ;;
-        *)
-            # 状态未知 - 淡白色，低亮度
-            log_message "设置 $led_name 为健康未知状态 (白色，亮度32)"
-            "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 32 >/dev/null 2>&1
-            ;;
-    esac
+    # 生成新的LED状态标识
+    local new_state="${health}_${activity}"
+    local cached_state="${LED_STATE_CACHE[$led_name]}"
+    
+    # 只有状态真正发生变化时才更新LED
+    if [[ "$cached_state" != "$new_state" ]]; then
+        log_message "LED $led_name 状态变化: $cached_state -> $new_state"
+        
+        # 根据活动状态和健康状态设置LED
+        case "$health" in
+            "GOOD")
+                case "$activity" in
+                    "ACTIVE")
+                        # 活动状态：白色，中等亮度
+                        log_message "设置 $led_name 为活动状态 (白色，亮度128)"
+                        "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 128 >/dev/null 2>&1
+                        ;;
+                    "IDLE")
+                        # 空闲状态：淡白色，低亮度
+                        log_message "设置 $led_name 为空闲状态 (白色，亮度32)"
+                        "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 32 >/dev/null 2>&1
+                        ;;
+                    *)
+                        # 状态未知 - 淡白色，低亮度
+                        log_message "设置 $led_name 为未知状态 (白色，亮度32)"
+                        "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 32 >/dev/null 2>&1
+                        ;;
+                esac
+                ;;
+            "BAD")
+                case "$activity" in
+                    "ACTIVE")
+                        # 错误状态：红色闪烁
+                        log_message "设置 $led_name 为错误活动状态 (红色闪烁)"
+                        "$UGREEN_CLI" "$led_name" -color 255 0 0 -blink 500 500 -brightness 255 >/dev/null 2>&1
+                        ;;
+                    *)
+                        # 错误状态：红色闪烁
+                        log_message "设置 $led_name 为错误状态 (红色闪烁)"
+                        "$UGREEN_CLI" "$led_name" -color 255 0 0 -blink 500 500 -brightness 255 >/dev/null 2>&1
+                        ;;
+                esac
+                ;;
+            *)
+                # 状态未知 - 淡白色，低亮度
+                log_message "设置 $led_name 为健康未知状态 (白色，亮度32)"
+                "$UGREEN_CLI" "$led_name" -color 255 255 255 -on -brightness 32 >/dev/null 2>&1
+                ;;
+        esac
+        
+        # 更新缓存
+        LED_STATE_CACHE[$led_name]="$new_state"
+    else
+        log_message "LED $led_name 状态无变化，跳过更新"
+    fi
 }
 
 # 关闭未使用的LED
@@ -528,39 +555,49 @@ background_monitor() {
     
     # 主监控循环
     while true; do
-        # 每隔一定时间重新扫描硬盘 (热插拔检测)
-        if (( scan_counter % 6 == 0 )); then  # 每6个周期重新扫描
-            log_message "重新扫描硬盘设备..."
+        # 减少重新扫描频率：每30个周期重新扫描 (约15-30分钟，根据扫描间隔)
+        if (( scan_counter % 30 == 0 )); then  # 大幅减少重新扫描频率
+            log_message "定期检查硬盘设备变化..."
             
-            # 重新检测LED (防止系统变化)
-            detect_available_leds >/dev/null 2>&1
+            # 先快速检查硬盘数量是否变化
+            local current_disk_count=$(ls /dev/sd[a-z] 2>/dev/null | wc -l)
             
-            # 重新检测硬盘
-            if detect_disk_mapping_hctl >/dev/null 2>&1; then
-                log_message "硬盘重新检测成功"
+            # 只有在硬盘数量发生变化时才重新映射
+            if [[ $current_disk_count -ne $last_disk_count ]]; then
+                log_message "检测到硬盘数量变化: $last_disk_count -> $current_disk_count，重新映射..."
                 
-                # 检查硬盘数量变化
-                if [[ ${#DISKS[@]} -ne $last_disk_count ]]; then
-                    log_message "硬盘数量变化: $last_disk_count -> ${#DISKS[@]}"
+                # 重新检测LED (仅在必要时)
+                detect_available_leds >/dev/null 2>&1
+                
+                # 重新检测硬盘
+                if detect_disk_mapping_hctl >/dev/null 2>&1; then
+                    log_message "硬盘重新映射成功"
                     last_disk_count=${#DISKS[@]}
+                else
+                    log_message "硬盘检测失败，继续使用现有配置"
                 fi
             else
-                log_message "硬盘检测失败，继续使用现有配置"
+                log_message "硬盘数量无变化，跳过重新映射"
             fi
         fi
         
-        # 为每个硬盘设置LED状态
-        log_message "开始LED状态更新 - 扫描周期 $scan_counter"
+        # 为每个硬盘设置LED状态 (减少日志输出)
+        if (( scan_counter % 10 == 0 )); then
+            log_message "开始LED状态更新 - 扫描周期 $scan_counter"
+        fi
+        
         for disk in "${DISKS[@]}"; do
             set_disk_led_by_activity "$disk"
         done
         
-        # 关闭未使用的LED（每10个周期执行一次）
         if (( scan_counter % 10 == 0 )); then
-            turn_off_unused_leds
+            log_message "LED状态更新完成 - 等待 ${scan_interval}秒"
         fi
         
-        log_message "LED状态更新完成 - 等待 ${scan_interval}秒"
+        # 关闭未使用的LED（减少频率：每50个周期执行一次）
+        if (( scan_counter % 50 == 0 )); then
+            turn_off_unused_leds
+        fi
         
         ((scan_counter++))
         sleep "$scan_interval"
