@@ -1,23 +1,153 @@
 #!/bin/bash
 
-# LLLED完全卸载脚本 - 确保彻底清理
+# LLLED 一键卸载脚本 v3.1.0
+# 支持多种卸载模式的完整LED控制系统移除工具
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
 NC='\033[0m'
 
-# 安装路径
+# 安装路径配置
 INSTALL_DIR="/opt/ugreen-led-controller"
-SERVICE_FILE="/etc/systemd/system/ugreen-led-monitor.service"
-COMMAND_LINK="/usr/local/bin/LLLED"
+LOG_DIR="/var/log/llled"
+SERVICE_NAME="ugreen-led-monitor"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+COMMAND_LINKS=("/usr/local/bin/LLLED" "/usr/bin/LLLED" "/bin/LLLED")
+BACKUP_DIR="/tmp/llled_config_backup_$(date +%Y%m%d_%H%M%S)"
 
 # 检查root权限
-[[ $EUID -ne 0 ]] && { echo -e "${RED}需要root权限: sudo $0${NC}"; exit 1; }
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${RED}❌ 需要root权限运行卸载程序${NC}"
+        echo -e "${YELLOW}请使用: sudo $0${NC}"
+        exit 1
+    fi
+}
 
-echo -e "${YELLOW}LLLED 完全卸载工具${NC}"
-echo "即将删除所有相关文件..."
-echo
+# 显示卸载程序信息
+show_header() {
+    clear
+    echo -e "${CYAN}================================${NC}"
+    echo -e "${CYAN}     LLLED 卸载程序 v3.1.0     ${NC}"
+    echo -e "${CYAN}================================${NC}"
+    echo
+    echo -e "${BLUE}🔧 UGREEN LED 控制系统卸载工具${NC}"
+    echo
+}
+
+# 检查当前安装状态
+check_installation_status() {
+    echo -e "${BLUE}📋 当前安装状态检查:${NC}"
+    
+    local status_found=false
+    
+    # 检查安装目录
+    if [[ -d "$INSTALL_DIR" ]]; then
+        echo -e "${GREEN}✓ 安装目录存在: $INSTALL_DIR${NC}"
+        status_found=true
+    else
+        echo -e "${YELLOW}⚠ 安装目录不存在${NC}"
+    fi
+    
+    # 检查系统服务
+    if systemctl list-unit-files | grep -q "$SERVICE_NAME"; then
+        if systemctl is-active --quiet "$SERVICE_NAME"; then
+            echo -e "${GREEN}✓ 系统服务运行中${NC}"
+        else
+            echo -e "${YELLOW}⚠ 系统服务已安装但未运行${NC}"
+        fi
+        status_found=true
+    else
+        echo -e "${YELLOW}⚠ 系统服务未安装${NC}"
+    fi
+    
+    # 检查命令链接
+    local link_found=false
+    for link in "${COMMAND_LINKS[@]}"; do
+        if [[ -L "$link" || -f "$link" ]]; then
+            echo -e "${GREEN}✓ 命令链接存在: $link${NC}"
+            link_found=true
+            status_found=true
+            break
+        fi
+    done
+    
+    if [[ "$link_found" == "false" ]]; then
+        echo -e "${YELLOW}⚠ 未找到命令链接${NC}"
+    fi
+    
+    # 检查配置文件
+    if [[ -f "$INSTALL_DIR/config/disk_mapping.conf" ]]; then
+        echo -e "${GREEN}✓ 配置文件存在${NC}"
+        status_found=true
+    else
+        echo -e "${YELLOW}⚠ 配置文件不存在${NC}"
+    fi
+    
+    echo
+    
+    if [[ "$status_found" == "false" ]]; then
+        echo -e "${RED}❌ 未检测到LLLED安装，退出卸载程序${NC}"
+        exit 0
+    fi
+}
+
+# 显示卸载选项
+show_uninstall_options() {
+    echo -e "${YELLOW}🗂️ 卸载选项:${NC}"
+    echo "1. 🗑️  完全卸载 (删除所有文件和配置)"
+    echo "2. 🔧 保留配置卸载 (保留配置文件以便将来重装)"
+    echo "3. ⏸️  仅停止服务 (不删除任何文件)"
+    echo "4. 📦 备份后完全卸载 (先备份配置再完全删除)"
+    echo "5. ❌ 取消卸载"
+    echo
+    
+    while true; do
+        read -p "请选择卸载方式 (1-5): " uninstall_choice
+        case $uninstall_choice in
+            1)
+                echo -e "${RED}选择: 完全卸载${NC}"
+                UNINSTALL_MODE="complete"
+                BACKUP_CONFIG=false
+                STOP_ONLY=false
+                break
+                ;;
+            2)
+                echo -e "${YELLOW}选择: 保留配置卸载${NC}"
+                UNINSTALL_MODE="keep-config"
+                BACKUP_CONFIG=false
+                STOP_ONLY=false
+                break
+                ;;
+            3)
+                echo -e "${BLUE}选择: 仅停止服务${NC}"
+                UNINSTALL_MODE="stop-only"
+                BACKUP_CONFIG=false
+                STOP_ONLY=true
+                break
+                ;;
+            4)
+                echo -e "${MAGENTA}选择: 备份后完全卸载${NC}"
+                UNINSTALL_MODE="backup-complete"
+                BACKUP_CONFIG=true
+                STOP_ONLY=false
+                break
+                ;;
+            5)
+                echo -e "${GREEN}✅ 取消卸载${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}❌ 无效选择，请重新选择 (1-5)${NC}"
+                ;;
+        esac
+    done
+    echo
+}
 
 # 停止服务
 echo "停止系统服务..."

@@ -86,7 +86,7 @@ set_led_color() {
         return 1
     fi
     
-    "$UGREEN_LEDS_CLI" "$led_name" -color $color -on -brightness "$brightness" >/dev/null 2>&1
+    "$UGREEN_LEDS_CLI" "$led_name" -color $color -brightness "$brightness" -on >/dev/null 2>&1
 }
 
 # 关闭LED

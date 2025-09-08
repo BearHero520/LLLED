@@ -71,7 +71,7 @@ for led in "${DISK_LEDS[@]}"; do
     done
     
     # 点亮当前测试的LED
-    $UGREEN_LEDS_CLI "$led" -color 255 0 0 -on -brightness 255
+    $UGREEN_LEDS_CLI "$led" -color 255 0 0 -brightness 255 -on
     
     echo "请记录 $led 对应的物理硬盘位置..."
     sleep 5

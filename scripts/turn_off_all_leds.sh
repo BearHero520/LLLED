@@ -61,8 +61,9 @@ detect_available_leds() {
     AVAILABLE_LEDS=()
     
     # 解析LED状态，提取可用的LED
+    # 输出格式: "disk1: status = off, brightness = 32, color = RGB(255, 255, 255)"
     while read -r line; do
-        if [[ "$line" =~ LED[[:space:]]+([^[:space:]]+) ]]; then
+        if [[ "$line" =~ ^([^:]+):[[:space:]]*status[[:space:]]*= ]]; then
             local led_name="${BASH_REMATCH[1]}"
             AVAILABLE_LEDS+=("$led_name")
             log_message "${GREEN}✓ 检测到LED: $led_name${NC}"
@@ -91,11 +92,28 @@ main() {
     # 检测可用LED
     if ! detect_available_leds; then
         log_message "${RED}LED检测失败，使用备用方法${NC}"
-        # 备用方法：直接使用all参数
+        # 备用方法1：直接使用all参数
         if "$UGREEN_LEDS_CLI" all -off >/dev/null 2>&1; then
-            log_message "${GREEN}✓ 所有LED灯已关闭 (备用方法)${NC}"
+            log_message "${GREEN}✓ 所有LED灯已关闭 (备用方法1)${NC}"
+            return 0
+        fi
+        
+        # 备用方法2：逐个尝试常见LED
+        log_message "${YELLOW}尝试备用方法2...${NC}"
+        local backup_leds=("power" "netdev" "disk1" "disk2" "disk3" "disk4" "disk5" "disk6" "disk7" "disk8")
+        local backup_success=0
+        
+        for led in "${backup_leds[@]}"; do
+            if "$UGREEN_LEDS_CLI" "$led" -off >/dev/null 2>&1; then
+                log_message "${GREEN}✓ $led LED已关闭${NC}"
+                ((backup_success++))
+            fi
+        done
+        
+        if [[ $backup_success -gt 0 ]]; then
+            log_message "${GREEN}✓ 使用备用方法关闭了 $backup_success 个LED${NC}"
         else
-            log_message "${RED}✗ LED关闭失败${NC}"
+            log_message "${RED}✗ 所有LED关闭方法均失败${NC}"
             exit 1
         fi
         return 0
