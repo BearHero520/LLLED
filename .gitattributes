@@ -1,0 +1,9 @@
+* text=auto
+
+*.sh text eol=lf
+*.service text eol=lf
+*.conf text eol=lf
+*.md text eol=lf
+
+ugreen_leds_cli binary
+*.png binary
